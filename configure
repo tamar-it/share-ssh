@@ -27,7 +27,7 @@ for arg in "$@"; do
         ;;
     esac
 done
-
+prefix=$(realpath $prefix)
 cat <<EOF > Makefile
 PREFIX = "$prefix"
 DOMAIN = "${default_domain:-example.com}"
