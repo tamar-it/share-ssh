@@ -9,7 +9,12 @@ share-ssh-profile was written for ubuntu 20.04 distribution with gnome desktop
 ## Requirement
 share-ssh script is using *host* command. make sure it is installed ```apt install bind9-host```
 share-ssh-profile is using *dconf* command, which is a part of dconf-cli package
-## installation
+## Installation
+Basic installation:
+```
+./configure
+make install
+```
 The default installation location is ~/.local. to change it run 
 ```./configure --prefix=/path/to/install```
 Replace /path/to/install with your prefered location
