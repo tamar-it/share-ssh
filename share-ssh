@@ -49,6 +49,9 @@ fi
 host=${host:-$DEFAULTHOST}
 inform "Connecting to ${host} $( [[ ! -z "$args" ]] && echo -n " with args ${args}")"
 
+ip_re='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
+if [[ ! $host =~ $ip_re ]]
+then
 # Lookup for the host's name
 dns_hostname=$( ( host -W 3 $host 2>/dev/null || host -W 3 ${host}.${DOMAIN} 2>/dev/null) |grep -v "^Host" |cut -d' ' -f 1 )
 
@@ -56,6 +59,7 @@ dns_hostname=$( ( host -W 3 $host 2>/dev/null || host -W 3 ${host}.${DOMAIN} 2>/
 grep -q "^\s*Host\s*${host}$"  ~/.ssh/config || host=${dns_hostname}
 
 [ -z $host ] && fatal "Cannot resolv host name"
+fi
 
 title $host
 
