@@ -1,0 +1,32 @@
+#!/bin/bash
+
+# Author: Tamar Klein <tamar@tamar-it.biz>
+#
+# This script add a new profile to gnome-terminal using share-ssh as command shell
+# usage: share-ssh-profile [hostname [parameters ...] ]
+# In case the hostname is ommited, a generic "SSH To..." profile will be created. Using it will prompt to the host name
+
+host=$1
+shift
+parameters=$*
+script_dir=$(dirname `realpath $0`)
+ssh_script=share-ssh
+
+profile=${host:-"SSH To ..."}
+
+[[ -x $script_dir/$ssh_script ]] && script=$script_dir/$ssh_script || script=$(which $ssh_script)
+
+gnome_terminal_path=/org/gnome/terminal/legacy/profiles:
+
+#generate uuid
+new_uuid=$(uuidgen)
+
+profiles_list=$(dconf read ${gnome_terminal_path}/list)
+
+echo "[/]
+custom-command='$script $host $parameters'
+exit-action='hold'
+login-shell=true
+use-custom-command=true
+visible-name='${profile^}'
+" | dconf load ${gnome_terminal_path}/:$new_uuid/ && dconf write ${gnome_terminal_path}/list "${profiles_list::-1}, '$new_uuid']" && echo Profile ${profile^} has been added to gnome-terminal

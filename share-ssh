@@ -1,0 +1,68 @@
+#!/bin/bash
+
+# Author: Tamar Klein <tamar@tamar-it.biz>
+#
+# This script is openning SSH connections, multiplexing (in case it set up on ~/.ssh/config) and can receive ssh parameters
+# if there is configuration for the host under ~/.ssh/config it will run it as master if the master isn't running
+
+# DOMAIN=<put your prefered domain here>
+DOMAIN=example.com
+# DEFAULTHOST=<your prefered remote host>
+DEFAULTHOST=host
+
+# Print message ib red
+error () {
+	echo -e "\e[1;91m$*\e[0m"
+}
+
+#print message in blue
+inform () {
+	echo -e "\e[1;94m$*\e[0m"
+}
+
+fatal () {
+	error $*
+	exit 1
+}
+
+# Set the terminal title
+title () {
+	echo -en "\033]0;$*\a"
+}
+
+args=
+for value in $@
+do
+	[[ ${value:0:1} == "-" ]] && args="${args} $value" || host=$value
+done
+
+if [ -z $host ]
+then
+	echo -en "\e[1mConnect to [\e[94m${DEFAULTHOST}\e[0m\e[1m]\e[0m" && read -p " > " -a inputs
+	# check for parameters on host
+	for value in ${inputs[@]}
+	do
+		[[ ${value:0:1} == "-" ]] && args="${args} $value" || host=$value
+	done
+fi
+
+host=${host:-$DEFAULTHOST}
+inform "Connecting to ${host} $( [[ ! -z "$args" ]] && echo -n " with args ${args}")"
+
+# Lookup for the host's name
+dns_hostname=$( ( host -W 3 $host 2>/dev/null || host -W 3 ${host}.${DOMAIN} 2>/dev/null) |grep -v "^Host" |cut -d' ' -f 1 )
+
+# Search for the host on .ssh/config file
+grep -q "^\s*Host\s*${host}$"  ~/.ssh/config || host=${dns_hostname}
+
+[ -z $host ] && fatal "Cannot resolv host name"
+
+title $host
+
+# If one only want to create socket in the background, the flags to be used are -Nf
+# Normaly in case the ssh master isn't running, the current run will create it,
+#  and won't close unless all attached connections are connected
+ssh -O check ${host} 2> /dev/null && ssh $args -CX ${host}  ||  ssh $args -CXM ${host}
+
+# set "Closed" title
+title Closed ${host}

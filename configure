@@ -1,0 +1,38 @@
+#!/bin/bash
+
+prefix=~/./local
+
+for arg in "$@"; do
+    case "$arg" in
+    --prefix=*)
+        prefix=${arg/--prefix=/}
+        ;;
+
+    --default-host=*)
+	default_host=${arg/--default-host=/}
+        ;;
+
+    --default-domain=*)
+	default_domain=${arg/--default-domain=/}
+        ;;
+
+    --help)
+        echo 'usage: ./configure [options]'
+        echo 'options:'
+        echo "  --prefix=<path>: installation prefix (default to ${prefix})"
+        echo '  --default-host=<host>: default host you usually ssh to'
+        echo '  --default-domain=<domain>: the default dns prefix of your hosts'
+        echo 'all invalid options are silently ignored'
+        exit 0
+        ;;
+    esac
+done
+
+cat <<EOF > Makefile
+PREFIX = "$prefix"
+DOMAIN = "${default_domain:-example.com}"
+HOST = "${default_host:-host}"
+EOF
+
+cat Makefile.in >> Makefile
+echo 'Configuration complete, type make install to install.'

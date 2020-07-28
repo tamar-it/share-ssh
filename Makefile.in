@@ -1,0 +1,4 @@
+install:
+	install share-ssh-profile -D -t $(PREFIX)/bin -m 0700
+	sed share-ssh -e "s/^DOMAIN=example.com/DOMAIN=$(DOMAIN)/" -e "s/^DEFAULTHOST=host/DEFAULTHOST=$(HOST)/" > $(PREFIX)/bin/share-ssh
+	chmod 0700 $(PREFIX)/bin/share-ssh
