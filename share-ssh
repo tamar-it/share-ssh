@@ -10,16 +10,22 @@ DOMAIN=example.com
 # DEFAULTHOST=<your prefered remote host>
 DEFAULTHOST=host
 
-# Print message ib red
+SSHBINARYARGS_RE='^[bcDEeFIiJLlmOopQRSWw]'
+IP_RE='^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$'
+HOST_RE='^[a-zA-Z0-9_]+(\.[a-zA-Z0-9_\-]+)*$'
+USERATHOST_RE='^(.+)@([^@]+)$'
+
+# Print message with red fonts
 error () {
 	echo -e "\e[1;91m$*\e[0m"
 }
 
-#print message in blue
+# Print message with blue fonts
 inform () {
 	echo -e "\e[1;94m$*\e[0m"
 }
 
+# Print error and exit with error code
 fatal () {
 	error $*
 	exit 1
@@ -31,12 +37,36 @@ title () {
 }
 
 args=
-for value in $@
+host_and_command=()
+while test $# -gt 0
 do
-	[[ ${value:0:1} == "-" ]] && args="${args} $value" || host=$value
+	value=$1
+	# Parsing ssh arguments: starts with '-' unless the parameters are a remote command line parameters
+	if [[ ${value:0:1} == '-' ]] && [[ ${#host_and_command[@]} -lt 2 ]]
+	then
+		args="${args} $value"
+		# in case of command line that takes arguments and there is a blank separating them
+		if [[ ${#value} -eq 2 ]] && [[ ${value:1:1} =~ $SSHBINARYARGS_RE ]]
+		then
+			args="${args} $2"
+			shift
+		fi
+	else
+		host_and_command=( ${host_and_command[@]} $value )
+	fi
+	shift
 done
 
-if [ -z $host ]
+host=${host_and_command[0]}
+command=${host_and_command[@]:1}
+
+if [[ $host =~ $USERATHOST_RE ]]
+then
+	args="${args} -l ${BASH_REMATCH[1]}"
+	host=${BASH_REMATCH[2]}
+fi
+
+if [[ -z $host ]]
 then
 	echo -en "\e[1mConnect to [\e[94m${DEFAULTHOST}\e[0m\e[1m]\e[0m" && read -p " > " -a inputs
 	# check for parameters on host
@@ -49,16 +79,20 @@ fi
 host=${host:-$DEFAULTHOST}
 inform "Connecting to ${host} $( [[ ! -z "$args" ]] && echo -n " with args ${args}")"
 
-ip_re='^([0-9]{1,3}\.){3}[0-9]{1,3}$'
-if [[ ! $host =~ $ip_re ]]
+if [[ ! $host =~ $IP_RE ]]
 then
-# Lookup for the host's name
-dns_hostname=$( ( host -W 3 $host 2>/dev/null || host -W 3 ${host}.${DOMAIN} 2>/dev/null) |grep -v "^Host" |cut -d' ' -f 1 )
+	if [[ $host =~ $HOST_RE ]]
+	then
+		# Lookup for the host's name
+		dns_hostname=$( ( host -W 3 $host 2>/dev/null || host -W 3 ${host}.${DOMAIN} 2>/dev/null) |grep -v "^Host" |cut -d' ' -f 1 )
 
-# Search for the host on .ssh/config file
-grep -q "^\s*Host\s*${host}$"  ~/.ssh/config || host=${dns_hostname}
+		# Search for the host on .ssh/config file
+		grep -q "^\s*Host\s*${host}$"  ~/.ssh/config || host=${dns_hostname}
 
-[ -z $host ] && fatal "Cannot resolv host name"
+		[ -z $host ] && fatal "Cannot resolv host name"
+	else
+		fatal "Illegal host name"
+	fi
 fi
 
 title $host
@@ -66,7 +100,7 @@ title $host
 # If one only want to create socket in the background, the flags to be used are -Nf
 # Normaly in case the ssh master isn't running, the current run will create it,
 #  and won't close unless all attached connections are connected
-ssh -O check ${host} 2> /dev/null && ssh $args -CX ${host}  ||  ssh $args -CXM ${host}
+ssh -O check ${host} 2> /dev/null && ssh $args -CX ${host}  ${command} ||  ssh $args -CXM ${host} ${command}
 
 # set "Closed" title
 title Closed ${host}
