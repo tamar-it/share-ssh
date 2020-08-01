@@ -41,11 +41,11 @@ host_and_command=()
 while test $# -gt 0
 do
 	value=$1
-	# Parsing ssh arguments: starts with '-' unless the parameters are a remote command line parameters
+	# Parsing ssh arguments: starts with '-' unless the arguments are a remote command line arguments
 	if [[ ${value:0:1} == '-' ]] && [[ ${#host_and_command[@]} -lt 2 ]]
 	then
 		args="${args} $value"
-		# in case of command line that takes arguments and there is a blank separating them
+		# In case of command line that takes arguments and there is a blank separating them
 		if [[ ${#value} -eq 2 ]] && [[ ${value:1:1} =~ $SSHBINARYARGS_RE ]]
 		then
 			args="${args} $2"
@@ -89,7 +89,7 @@ then
 		# Search for the host on .ssh/config file
 		grep -q "^\s*Host\s*${host}$"  ~/.ssh/config || host=${dns_hostname}
 
-		[ -z $host ] && fatal "Cannot resolv host name"
+		[[ -z $host ]] && fatal "Cannot resolv host name"
 	else
 		fatal "Illegal host name"
 	fi
